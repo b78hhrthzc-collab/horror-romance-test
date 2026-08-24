@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4f1eb">
+<title>亲密关系倾向调查</title>
+<style>
+:root{--bg:#f4f1eb;--paper:#fffdf8;--ink:#25231f;--muted:#858077;--line:#ded8cf;--accent:#25231f;--danger:#8e1c1c}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;min-height:100vh}
+body.dark{--bg:#111;--paper:#171717;--ink:#ddd;--muted:#777;--line:#333;--accent:#ddd}
+.wrap{max-width:620px;margin:auto;padding:52px 22px 80px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:28px 22px;box-shadow:0 12px 38px rgba(0,0,0,.05)}
+.kicker{font-size:12px;letter-spacing:.22em;color:var(--muted);margin-bottom:10px}
+h1{font-size:27px;margin:0 0 14px;font-weight:650;letter-spacing:.02em}
+.desc{font-size:14px;line-height:1.9;color:var(--muted);margin:0 0 25px}
+.progress{height:2px;background:var(--line);margin:0 0 28px;overflow:hidden}.bar{height:100%;background:var(--accent);width:0;transition:.4s}
+.meta{font-size:12px;color:var(--muted);margin-bottom:12px}.q{font-size:18px;line-height:1.75;white-space:pre-line;margin-bottom:22px}
+.opts{display:grid;gap:11px}.opt{width:100%;text-align:left;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:13px;padding:15px 16px;font-size:15px;line-height:1.55;cursor:pointer}
+.opt:active{transform:scale(.99)}.start{width:100%;border:0;border-radius:13px;background:var(--accent);color:var(--paper);padding:16px;font-size:16px;cursor:pointer}
+.small{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
+.hidden{display:none!important}.glitch{animation:gl .12s linear 4}@keyframes gl{0%{transform:translate(0)}25%{transform:translate(2px,-1px)}50%{transform:translate(-2px,1px)}100%{transform:translate(0)}}
+.red{color:var(--danger)} .result{font-size:16px;line-height:2;white-space:pre-line}
+input{width:100%;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--ink);padding:14px;font-size:16px;outline:none;margin-bottom:12px}
+@media(max-width:500px){.wrap{padding-top:28px}.card{padding:24px 18px}h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="wrap"><main class="card" id="card">
+<section id="intro">
+<div class="kicker">RELATIONSHIP SAFETY INDEX / 2026</div>
+<h1>亲密关系倾向调查</h1>
+<p class="desc">这是一份关于亲密关系、安全感与个人边界的匿名测试。共 18 题，通常需要 3–5 分钟。<br><br>请按照第一反应选择。测试会根据你的答案自动调整后续题目。</p>
+<button class="start" id="start">开始测试</button>
+<div class="small">答案只保存在当前页面。</div>
+</section>
+<section id="game" class="hidden">
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="meta" id="meta"></div>
+<div class="q" id="q"></div>
+<div class="opts" id="opts"></div>
+</section>
+<section id="ending" class="hidden"></section>
+</main></div>
+<script>
+(()=> {
+const $=id=>document.getElementById(id), card=$("card"), q=$("q"), opts=$("opts"), meta=$("meta"), bar=$("bar");
+let i=0, score={trust:0,avoid:0,attach:0,curious:0}, history=[], name="";
+const normal=[
+["恋人半夜没有睡。他侧躺在你身边，安静地看着你。你会：",["觉得安心，重新睡","问他为什么一直看我","有点不舒服，往旁边挪","靠近一点，让他抱着我"]],
+["你发现恋人记得你很久以前随口提过的小事。",["很开心","有点意外，但觉得可爱","会想：他为什么记得这么清楚？","没什么特别感觉"]],
+["争吵以后，对方突然停止回复消息。你最先想到的是：",["等彼此冷静","是不是我说错了什么","他故意用沉默惩罚我","直接去找他"]],
+["恋人说：‘我只是想知道你今天去了哪里。’",["告诉他","问他为什么突然问","觉得被管得太多","如果是恋人，知道也没关系"]],
+["如果一个人非常了解你，你更接近哪种感受？",["幸福","安心","有一点害怕","想知道他究竟了解多少"]],
+["你更能接受哪一种爱？",["稳定但平淡","强烈而黏人","彼此独立","只要是真心，形式不重要"]],
+["恋人偶尔表现出占有欲时：",["会觉得被需要","可以接受一点","会马上警惕","取决于程度"]],
+["你睡着以后，对方替你把手机充上电。",["很贴心","正常的小事","会介意他碰我的手机","先检查手机有没有被动过"]]
+];
+const strange=[
+["你有没有想过，一个人如果足够了解你，甚至可以比你更早知道你会选什么？",["没有","偶尔","……有吧","这题是什么意思？"]],
+["刚才第 3 题，你犹豫得比其他题久。",["我没有","可能吧","你怎么知道？","继续"]],
+["如果有人每天都在等你打开这个页面，你会觉得：",["可爱","奇怪","害怕","取决于是谁"]],
+["假设测试结束以后，它仍然记得你的答案。",["无所谓","删掉就好","我会不舒服","它为什么要记？"]],
+["请选择你最熟悉的一句话。",["晚安","到家告诉我","你在哪里","我看见你了"]],
+["如果门外有人敲了三次门，而你没有约任何人。",["去看看","问是谁","不开门","……"]],
+["你现在是一个人吗？",["是","不是","不想回答","这和测试有什么关系？"]],
+["最后三个问题不会计入结果。",["知道了","继续","为什么要告诉我？","你刚才不是说共18题吗"]],
+["如果有人说，他从第一题开始就在等你选到这里。",["谁？","别开玩笑","退出测试","让他说下去"]],
+["你希望他现在停下来吗？",["希望","不希望","我不知道","……谁？"]]
+];
+function render(){
+ let arr=i<8?normal:strange, idx=i<8?i:i-8;
+ if(i>=18)return finish();
+ meta.textContent=`第 ${i+1} 题 / 18`;
+ bar.style.width=((i)/18*100)+"%";
+ q.textContent=arr[idx][0]; opts.innerHTML="";
+ arr[idx][1].forEach((t,n)=>{
+   let b=document.createElement("button"); b.className="opt"; b.textContent=String.fromCharCode(65+n)+". "+t;
+   b.onclick=()=>choose(n,t); opts.appendChild(b);
+ });
+ if(i===9){setTimeout(()=>{meta.textContent="第 10 题 / 18　　记录中";},700)}
+ if(i===12){document.body.classList.add("dark");card.classList.add("glitch")}
+ if(i===14){setTimeout(()=>{q.innerHTML='你现在是一个人吗？<br><span class="red" style="font-size:12px">请不要回头确认。</span>';},900)}
+}
+function choose(n,t){
+ history.push(n);
+ if(n===0)score.trust++; if(n===2)score.avoid++; if(n===3)score.curious++; if(n===1)score.attach++;
+ i++;
+ if(i===8){card.classList.add("glitch");setTimeout(()=>card.classList.remove("glitch"),600)}
+ render();
+}
+function finish(){
+ $("game").classList.add("hidden"); let e=$("ending");e.classList.remove("hidden");
+ let type=score.avoid>score.trust?"高警觉型":score.attach+score.curious>score.trust?"高感受型":"稳定依恋型";
+ e.innerHTML=`<div class="kicker">ANALYSIS COMPLETE</div><h1>测试完成</h1>
+ <div class="result">你的表层结果：<b>${type}</b>
+
+你对亲密关系的感受并不迟钝。你会观察靠近你的人，也会记住那些让你感到安全或不安的细节。
+
+但是，这不是完整结果。
+
+第 10 题说你犹豫得更久，是假的。
+这个网页没有记录你的停留时间。
+
+第 15 题也不知道你是不是一个人。
+
+它只是在测试一件事：
+
+<b>当一个本来应该“了解你”的系统，突然表现得像它知道得太多时，你会不会开始主动替它补全那些它根本不知道的信息。</b>
+
+你刚才有没有哪一秒，真的怀疑它在看你？</div>
+ <button class="start" style="margin-top:24px" onclick="location.reload()">重新测试</button>
+ <div class="small">……这次它真的不会记住。</div>`;
+}
+$("start").onclick=()=>{$("intro").classList.add("hidden");$("game").classList.remove("hidden");render()};
+})();
+</script>
+</body></html>
